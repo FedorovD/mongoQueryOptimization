@@ -17,6 +17,28 @@ db.getCollection('opportunities').aggregate([
             }
         }
     },
+    {$project: {
+        '_id': 1,
+        'initiativeId': 1,
+        'contacts.id' : 1,
+        'contacts.datePublished' : 1,
+        'contacts.shortListedVendors' : 1,
+        'contacts.vendors' : 1,
+        'contacts.questions.criteria_value' : 1,
+        'contacts.questions.label' : 1,
+        'contacts.questions.raw_text' : 1,
+        'contacts.questions.id' : 1,
+        'contacts.questions.category_id' : 1,
+        'contacts.win_vendor.is_client' : 1,
+        'contacts.win_vendor.value' : 1,
+        'contacts.win_vendor.name': 1,
+        'contacts.questions.answers.criteria_value': 1,
+        'contacts.questions.answers.primary_answer_value' : 1,
+        'contacts.questions.answers.primary_answer_text' : 1,
+        'contacts.questions.answers.loopInstances.is_selected' : 1,
+        'contacts.questions.answers.loopInstances.loop_instance' : 1,
+        'contacts.questions.answers.loopInstances.loop_text' : 1
+        }},
     {
         "$unwind" : "$contacts"
     },
@@ -200,24 +222,50 @@ db.getCollection('opportunities').aggregate([
             ]
         }
     },
-    {
+{
         "$lookup" : {
             "from" : "clientCriteria",
-            "localField" : "criteria_value",
-            "foreignField" : "value",
-            "as" : "criteria"
+                let: { criteria_value: "$criteria_value"},
+                 pipeline: [
+                    {
+        "$match" : {
+            "versions.initiativeId" : ObjectId("58af4da0b310d92314627290")
         }
     },
+                  { $match:
+                     { $expr:
+                             { $eq: [ "$value",  "$$criteria_value" ] }
+                     }
+                  },
+                  { $project: { 'versions.initiativeId': 1,
+                                'definition': 1,
+                                'versions.definition': 1,
+                                'criteria_value': 1,
+                                'label': 1
+                      } }
+               ],
+            "as" : "criteria"
+        }
+    }, 
+    {$project: {'criteria.versions.initiativeId': 1,
+                'criteria.definition': 1,
+                'criteria.versions.definition': 1,
+                'contacts.questions.answers.primary_answer_value': 1,
+                'contacts.questions.answers.primary_answer_value': 1,
+                'contacts.questions.answers.primary_answer_text': 1,
+                'contacts.id': 1,
+                'contacts.questions.category_id': 1,
+                'contacts.questions.answers.loopInstances.loop_instance': 1,
+                'contacts.questions.answers.primary_answer_value': 1,
+                'contacts.questions.answers.loopInstances.is_selected': 1,
+                'criteria_value': 1,
+                'criteria.label': 1
+                }},
     {
         "$unwind" : "$criteria"
     },
     {
         "$unwind" : "$criteria.versions"
-    },
-    {
-        "$match" : {
-            "criteria.versions.initiativeId" : ObjectId("58af4da0b310d92314627290")
-        }
     },
     {
         "$group" : {
@@ -251,4 +299,4 @@ db.getCollection('opportunities').aggregate([
             }
         }
     }
-])
+]).toArray()
